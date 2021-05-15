@@ -1,0 +1,36 @@
+﻿@using System.Linq
+@model CoffeeShop.Models.Receipt
+@{
+}
+<h5>Order has been placed.</h5>
+<b>The Coffee Shop</b>
+<b>Customer</b> @Html.DisplayFor(x => x.Client.Name)
+<table class="table w-auto">
+    <thead>
+        <tr>
+            <th>Qty</th>
+            <th>Item</th>
+            <th>Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.OrderItems.Where(x => x.Quantity > 0))
+        {
+        <tr>
+            <td>@item.Quantity</td>
+            <td>@item.ProductName @@ @item.Price </td>
+            <td>@Math.Round(item.Price * item.Quantity, 2)</td>
+        </tr>
+        }
+    </tbody>
+    <tfoot>
+        <tr>
+            <th colspan="2" class="text-right">Total</th>
+            <th>@Html.DisplayFor(x => x.Total)</th>
+        </tr>
+    </tfoot>
+</table>
+@if(Model.Client.Id > 0)
+{
+    <h5>You have @Math.Abs(Model.TotalItemsPurchased / 10) points</h5>
+}
