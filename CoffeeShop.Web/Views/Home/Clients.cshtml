@@ -1,0 +1,35 @@
+﻿@model IEnumerable<CoffeeShop.Models.Entities.Clients>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Client</th>
+            <th>Coffees Bought</th>
+            <th>Total Purchases</th>
+            <th>Loyalty Points</th>
+            <th>Monetary Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Where(x => x.Sales != null && x.Sales.Count > 0))
+        {
+        <tr>
+            <td>
+                @Html.DisplayFor(model => item.EmailAddress)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.Sales.Count)
+            </td>
+            <td>
+                @string.Format("{0:N2}", item.Sales.Sum(x => x.Price))
+            </td>
+            <td>
+                @Math.Abs(item.Sales.Count / 10)
+            </td>
+            <td>
+                @string.Format("{0:N2}", (Math.Abs(item.Sales.Count / 10) * 1.50)) @*Let's make each point worth R1.50'*@
+            </td>
+        </tr>
+        }
+    </tbody>
+</table>

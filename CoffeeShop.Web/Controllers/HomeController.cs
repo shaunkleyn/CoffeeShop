@@ -3,7 +3,6 @@ using CoffeeShop.Models;
 using CoffeeShop.Models.Entities;
 using CoffeeShop.Web.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.Collections.Generic;
@@ -23,9 +22,15 @@ namespace CoffeeShop.Web.Controllers
         {
             BuyCoffeeViewModel model = new BuyCoffeeViewModel();
             model.Coffees = JsonConvert.DeserializeObject<List<Products>>(await client.GetStringAsync(_url.AppendToURL(PRODUCTS))).ToList();
-            model.Coffees.ForEach(x => model.OrderItems.Add(new OrderItems() {  ProductId = x.Id, ProductName = x.Name, Quantity = 0 }));
-            var clients = JsonConvert.DeserializeObject<List<Clients>>(await client.GetStringAsync(_url.AppendToURL(CLIENTS))).ToList();
-            model.Clients =clients.Select(x => new SelectListItem(x.EmailAddress, x.Id.ToString())).ToList();
+            model.Coffees.ForEach(x => model.OrderItems.Add(new OrderItems() 
+            {  
+                ProductId = x.Id, 
+                ProductName = x.Name, 
+                Quantity = 0,
+                Price = x.Price
+            }));
+            //var clients = JsonConvert.DeserializeObject<List<Clients>>(await client.GetStringAsync(_url.AppendToURL(CLIENTS))).ToList();
+            //model.Clients = clients.Select(x => new SelectListItem(x.EmailAddress, x.Id.ToString())).ToList();
             return View(model);
         }
 
@@ -35,16 +40,17 @@ namespace CoffeeShop.Web.Controllers
             Order order = new Order()
             {
                 OrderItems = model.OrderItems,
-                ClientId = model.ClientId
+                ClientEmailAddress = model.ClientEmailAddress
             };
 
             var result = await client.PostAsJsonAsync<Receipt>(_url.AppendToURL(SALES_PLACE_ORDER), order);
             return View("Receipt", result);
         }
 
-        public IActionResult Privacy()
+        public async Task<IActionResult> Clients()
         {
-            return View();
+            var model = JsonConvert.DeserializeObject<List<Clients>>(await client.GetStringAsync(_url.AppendToURL(CLIENTS))).ToList();
+            return View(model);
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

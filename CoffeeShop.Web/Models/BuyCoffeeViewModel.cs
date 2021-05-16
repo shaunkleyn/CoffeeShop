@@ -9,8 +9,5 @@ namespace CoffeeShop.Web.Models
     {
         public List<Products> Coffees { get; set; }
         public List<SelectListItem> Clients { get; set; }
-
-        //public int ClientId { get; set; }
-        public string ClientContactNumber { get; set; }
     }
 }

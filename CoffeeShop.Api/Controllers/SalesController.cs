@@ -13,6 +13,7 @@ namespace CoffeeShop.Api.Controllers
     [ApiController]
     public class SalesController : ControllerBase
     {
+        public const string CASH_SALE_EMAIL = "Cash Sale";
         private readonly CoffeeShopContext _context;
 
         public SalesController(CoffeeShopContext context)
@@ -132,22 +133,39 @@ namespace CoffeeShop.Api.Controllers
             {
                 try
                 {
-                    List<Sales> sales = new List<Sales>();
-                    foreach (var orderItem in model.OrderItems)
+                    if (string.IsNullOrEmpty(model.ClientEmailAddress))
                     {
+                        model.ClientEmailAddress = CASH_SALE_EMAIL;
+                    }
+
+                    var client = _context.Clients.FirstOrDefault(x => x.EmailAddress.Equals(model.ClientEmailAddress.Trim()));
+                    
+                    // this customer hasnt bought from us before so let's add him to the clients table
+                    if (client == null)
+                    {
+                        client = new Clients()
+                        {
+                            EmailAddress = model.ClientEmailAddress.Trim().ToLowerInvariant()
+                        };
+
+                        _context.Clients.Add(client);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    foreach (var orderItem in model.OrderItems.Where(x => x.Quantity > 0))
+                    {
+                        orderItem.Price = _context.Products.AsNoTracking().FirstOrDefault(x => x.Id.Equals(orderItem.ProductId))?.Price ?? 0M;
                         for (int i = 0; i < orderItem.Quantity; i++)
                         {
-
                            var sale = new Sales()
                             {
                                 TransactionDate = DateTime.Now,
-                                ClientId = model.ClientId,
+                                ClientId = client.Id,
                                 ProductId = orderItem.ProductId,
                                 SaleIdentifier = salesIdentifier,
-                                Price = _context.Products.AsNoTracking().FirstOrDefault(x => x.Id.Equals(orderItem.ProductId))?.Price ?? 0M
+                                Price = orderItem.Price
                             };
 
-                            orderItem.Price = sale.Price;
                             _context.Sales.Add(sale);
                             await _context.SaveChangesAsync();
                         }
@@ -155,23 +173,14 @@ namespace CoffeeShop.Api.Controllers
 
                     transaction.Commit();
 
-                    var result = _context.Sales.Where(x => x.SaleIdentifier == salesIdentifier).ToList();
-                    var client = _context.Clients.FirstOrDefault(x => x.Id == model.ClientId);
-                    var products = _context.Products.AsEnumerable();
-                    result.ForEach(x => 
-                    {
-                        x.Client = client ?? new Clients() { Name = "Cash Sale"};
-                        x.Product = products.FirstOrDefault(y => y.Id == x.ProductId);
-                    });
-
-                    receipt.Client = _context.Clients.FirstOrDefault(x => x.Id == model.ClientId);
+                    receipt.Client = client;
                     receipt.OrderItems = model.OrderItems;
                     receipt.SaleReference = salesIdentifier;
-                    receipt.Total = result.Sum(x => x.Price);
-                    if(model.ClientId > 0)
+                    receipt.Total = model.OrderItems.Sum(x => x.Price);
+                    
+                    if(!model.ClientEmailAddress.Equals(CASH_SALE_EMAIL, StringComparison.OrdinalIgnoreCase))
                     {
-
-                        receipt.TotalItemsPurchased = _context.Sales.Count(x => x.ClientId == model.ClientId);
+                        receipt.TotalItemsPurchased = _context.Sales.Count(x => x.ClientId == client.Id);
                     }
                 }
                 catch (Exception)

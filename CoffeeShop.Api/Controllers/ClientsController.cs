@@ -22,7 +22,7 @@ namespace CoffeeShop.Api.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Clients>>> GetClients()
         {
-            return await _context.Clients.ToListAsync();
+            return await _context.Clients.Include(x => x.Sales).ToListAsync();
         }
 
         // GET: api/Clients/5
